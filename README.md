@@ -24,7 +24,7 @@ When production breaks, teams scramble across Slack threads, dashboards and docs
 | **Live everything** | Timeline entries, status changes and new incidents are pushed to every open browser. Optional Redis pub/sub lets you run several server instances. |
 | **Error-rate visualization** | Adaptive time buckets (1m to 6h), stacked errors and alerts, and deploy and recovery markers. |
 | **AI postmortems** | LLM with JSON-schema structured output (validated again with Zod), a prompt-injection-aware system prompt and refusal handling. Falls back to a deterministic template without an API key. |
-| **Production-ready** | Typed end to end (TypeScript + Zod), migrations, graceful shutdown that flushes unsaved notes, health checks, Docker, CI. |
+| **Production-ready** | Typed end to end (TypeScript + Zod), migrations, graceful shutdown that flushes unsaved notes, health checks, Docker, CI, and Terraform-managed AWS deploys. |
 
 ![Postmortem](docs/postmortem.png)
 
@@ -63,7 +63,7 @@ flowchart LR
 **Frontend:** React 18, TypeScript, Vite, Tailwind CSS v4, TipTap + Yjs, Recharts, React Router
 **Backend:** Node.js 22, Express 5, `ws`, Yjs / y-protocols, PostgreSQL (`pg`), Redis (`ioredis`), Zod
 **AI:** LLM API with structured outputs
-**Infra:** Docker, Docker Compose, Render blueprint, GitHub Actions (typecheck, tests against real Postgres, build)
+**Infra:** AWS (EC2, SSM, IAM, Budgets) with Terraform, Caddy, Docker Compose, GitHub Actions CI/CD with OIDC, Render blueprint
 **Testing:** Vitest, Supertest, Playwright (end-to-end, multi-user)
 
 ## Run it locally
@@ -91,13 +91,23 @@ npm run simulate
 
 The simulator plays a realistic incident: a push, a bad deploy, an error spike that auto-opens an incident, responders' findings, a rollback and recovery. Open the room in two browser windows to see collaboration live.
 
-## Deploy (free)
+## Deploy
 
-1. Push this repo to GitHub.
-2. On [Render](https://render.com): **New → Blueprint**, then select the repo. `render.yaml` creates the web service and a Postgres database.
-3. Optional: set `AI_API_KEY` in the service's environment for AI postmortems.
+### AWS (Terraform)
 
-> Render's free Postgres expires after 30 days. For a permanent demo, point `DATABASE_URL` at a free [Neon](https://neon.tech) database (add `?sslmode=require`).
+Infrastructure as code in [`infra/aws`](infra/aws): an EC2 instance running the stack with Docker Compose, Caddy for automatic HTTPS, secrets in SSM Parameter Store, no SSH (Session Manager only), a budget alert, and **GitHub Actions auto-deploy over OIDC** (no AWS keys stored in GitHub).
+
+```bash
+cd infra/aws
+cp terraform.tfvars.example terraform.tfvars   # set alert_email
+terraform init && terraform apply              # prints your https:// URL
+```
+
+Step-by-step guide for first-time AWS users: **[docs/deploy-aws.md](docs/deploy-aws.md)**.
+
+### Render (free, simplest)
+
+On [Render](https://render.com): **New → Blueprint**, then select the repo. `render.yaml` creates the web service and a Postgres database. Render's free Postgres expires after 30 days; for a lasting demo point `DATABASE_URL` at a free [Neon](https://neon.tech) database (add `?sslmode=require`).
 
 ### Connect real webhooks
 

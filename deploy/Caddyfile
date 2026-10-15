@@ -1,0 +1,6 @@
+# Caddy gets and renews the HTTPS certificate automatically and proxies
+# WebSocket upgrades (/live, /yjs) without extra config.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:4000
+}
