@@ -3,8 +3,13 @@
 # Secrets live in SSM Parameter Store, there is no SSH (shell access goes
 # through SSM Session Manager), and a budget alert guards against surprise bills.
 
+locals {
+  # Graviton families have a "g" right after the generation number: t4g, m7g, c7gn...
+  arm = can(regex("^[a-z]+[0-9]+g", var.instance_type))
+}
+
 data "aws_ssm_parameter" "al2023_ami" {
-  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-${local.arm ? "arm64" : "x86_64"}"
 }
 
 data "aws_vpc" "default" {
@@ -152,11 +157,14 @@ resource "aws_instance" "app" {
     domain     = local.domain
     region     = var.region
     param_path = local.param_path
+    # Release asset names for the Docker plugins differ per CPU architecture.
+    compose_arch = local.arm ? "aarch64" : "x86_64"
+    buildx_arch  = local.arm ? "arm64" : "amd64"
   })
 
   root_block_device {
     volume_type = "gp3"
-    volume_size = 20
+    volume_size = var.disk_gb
     encrypted   = true
   }
 
@@ -169,6 +177,8 @@ resource "aws_instance" "app" {
   lifecycle {
     # The database lives on this disk: never replace the server just because
     # a newer AMI exists or the bootstrap script changed. Deploys go through SSM.
+    # To move to a different instance family on purpose:
+    #   terraform apply -replace=aws_instance.app
     ignore_changes = [ami, user_data]
   }
 

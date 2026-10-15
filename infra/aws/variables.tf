@@ -11,9 +11,15 @@ variable "region" {
 }
 
 variable "instance_type" {
-  description = "EC2 size. t3.micro (1 GB RAM + 2 GB swap) is enough for a demo; t3.small builds faster."
+  description = "EC2 size. t4g.* (ARM/Graviton) is ~20% cheaper than t3.*; t4g.micro (1 GB RAM + 2 GB swap) is enough for a demo."
   type        = string
-  default     = "t3.micro"
+  default     = "t4g.micro"
+}
+
+variable "disk_gb" {
+  description = "Root disk size in GB (OS, Docker images, database, swap)."
+  type        = number
+  default     = 12
 }
 
 variable "repo_url" {
