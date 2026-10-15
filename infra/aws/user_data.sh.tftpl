@@ -1,5 +1,5 @@
 #!/bin/bash
-# First-boot setup for the app server (Amazon Linux 2023, x86_64).
+# First-boot setup for the app server (Amazon Linux 2023, x86_64 or arm64).
 # Rendered by Terraform templatefile(): dollar-brace placeholders are filled in by
 # Terraform, so shell variables below use the plain $NAME form.
 set -euxo pipefail
@@ -9,9 +9,9 @@ exec > >(tee -a /var/log/incident-room-bootstrap.log) 2>&1
 dnf install -y docker git
 systemctl enable --now docker
 mkdir -p /usr/local/lib/docker/cli-plugins
-curl -fsSL https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-x86_64 \
+curl -fsSL https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-${compose_arch} \
   -o /usr/local/lib/docker/cli-plugins/docker-compose
-curl -fsSL https://github.com/docker/buildx/releases/download/v0.17.1/buildx-v0.17.1.linux-amd64 \
+curl -fsSL https://github.com/docker/buildx/releases/download/v0.17.1/buildx-v0.17.1.linux-${buildx_arch} \
   -o /usr/local/lib/docker/cli-plugins/docker-buildx
 chmod +x /usr/local/lib/docker/cli-plugins/*
 

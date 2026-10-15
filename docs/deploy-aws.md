@@ -8,7 +8,7 @@ One command creates everything; one command deletes it. Total time: about 20 min
 flowchart LR
   U[Browser] -->|HTTPS + WebSockets| C
   GH[GitHub Actions] -->|OIDC role, SSM command| EC2
-  subgraph EC2 [EC2 instance · Amazon Linux 2023 · Docker Compose]
+  subgraph EC2 [EC2 t4g.micro · Amazon Linux 2023 · Docker Compose]
     C[Caddy<br/>auto HTTPS] --> A[App<br/>Node.js]
     A --> P[(Postgres)]
     A --> R[(Redis)]
@@ -19,7 +19,7 @@ flowchart LR
 
 | Resource | Why |
 |---|---|
-| EC2 `t3.micro` + Elastic IP | Runs the app, Postgres and Redis in Docker. Fixed IP so the URL never changes. |
+| EC2 `t4g.micro` (ARM) + Elastic IP | Runs the app, Postgres and Redis in Docker. Fixed IP so the URL never changes. |
 | Caddy | Free HTTPS certificate (Let's Encrypt), auto-renewed, WebSocket-aware. |
 | SSM Parameter Store | Encrypted secrets (DB password, webhook secrets, AI key), never in Git or user data. |
 | IAM roles | Server can read only its own secrets. GitHub can only run the deploy command on this one server. |
@@ -27,7 +27,7 @@ flowchart LR
 | GitHub OIDC | Auto-deploy on every push to `main` without storing AWS keys in GitHub. |
 | AWS Budget | Emails you at 80% of your monthly limit (default $15). |
 
-**Cost:** about **$12–14/month** after free credits (t3.micro ~$7.60, 20 GB disk ~$1.60, public IPv4 ~$3.60). New AWS accounts get free credits; check [aws.amazon.com/free](https://aws.amazon.com/free). Run `terraform destroy` when you don't need it and it costs nothing.
+**Cost:** about **$10–11/month** after free credits (t4g.micro ~$6.10, 12 GB disk ~$1.00, public IPv4 ~$3.60). New AWS accounts get free credits; check [aws.amazon.com/free](https://aws.amazon.com/free). Run `terraform destroy` when you don't need it and it costs nothing.
 
 ## Step 1: Install the tools (once)
 
