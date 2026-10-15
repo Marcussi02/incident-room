@@ -1,0 +1,67 @@
+name: Deploy to AWS
+
+# Runs after CI passes on main. Skipped until the repository variables from
+# `terraform output github_actions_variables` are added.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # for OIDC: no AWS keys stored in GitHub
+  contents: read
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      vars.AWS_DEPLOY_ROLE_ARN != '' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Run deploy script on the server
+        env:
+          INSTANCE_ID: ${{ vars.AWS_INSTANCE_ID }}
+        run: |
+          set -euo pipefail
+          CMD_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "Deploy ${GITHUB_SHA::7}" \
+            --parameters 'commands=["/usr/local/bin/incident-room-deploy"],executionTimeout=["1500"]' \
+            --query Command.CommandId --output text)
+          echo "SSM command $CMD_ID"
+
+          # Builds on a small instance take a few minutes; poll up to 25 min.
+          for _ in $(seq 1 150); do
+            STATUS=$(aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+              --query Status --output text 2>/dev/null || echo Pending)
+            case "$STATUS" in
+              Success) break ;;
+              Failed|Cancelled|TimedOut|Cancelling) break ;;
+            esac
+            sleep 10
+          done
+
+          aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+            --query StandardOutputContent --output text | tail -n 30
+          [ "$STATUS" = "Success" ] || { echo "Deploy finished with status: $STATUS"; exit 1; }
+
+      - name: Health check
+        if: vars.APP_URL != ''
+        run: |
+          for _ in $(seq 1 20); do
+            curl -fsS "${{ vars.APP_URL }}/healthz" && exit 0
+            sleep 6
+          done
+          echo "App did not become healthy" && exit 1
