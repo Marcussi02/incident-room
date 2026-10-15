@@ -16,7 +16,7 @@ services:
         sync: false
       - key: INGEST_TOKEN
         generateValue: true
-      - key: ANTHROPIC_API_KEY
+      - key: AI_API_KEY
         sync: false
 
 databases:

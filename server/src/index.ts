@@ -16,12 +16,12 @@ async function main() {
   const hub = new LiveHub(config.REDIS_URL);
   const notes = new NotesServer(db);
   const service = new IncidentService(db, hub);
-  const anthropic = config.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: config.ANTHROPIC_API_KEY }) : null;
+  const aiClient = config.AI_API_KEY ? new Anthropic({ apiKey: config.AI_API_KEY }) : null;
 
   const app = createApp({
     service,
     readNotes: (id) => notes.readNotesText(`incident:${id}`),
-    anthropic,
+    aiClient,
     config,
   });
 
@@ -43,7 +43,7 @@ async function main() {
   });
 
   server.listen(config.PORT, () => {
-    console.log(`IncidentRoom listening on http://localhost:${config.PORT} (AI postmortems: ${anthropic ? "Claude" : "template"})`);
+    console.log(`IncidentRoom listening on http://localhost:${config.PORT} (AI postmortems: ${aiClient ? "LLM" : "template"})`);
   });
 
   const shutdown = async () => {

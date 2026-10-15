@@ -25,7 +25,7 @@ describe.skipIf(!url)("API (Postgres)", () => {
     db = createPool(url!);
     await migrate(db);
     const service = new IncidentService(db, { publish });
-    app = createApp({ service, readNotes: async () => "Rolled back the deploy", anthropic: null, config: secrets });
+    app = createApp({ service, readNotes: async () => "Rolled back the deploy", aiClient: null, config: secrets });
   });
 
   beforeEach(async () => {

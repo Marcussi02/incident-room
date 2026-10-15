@@ -11,21 +11,21 @@ import { webhookRoutes } from "./routes/webhooks.js";
 export interface AppDeps {
   service: IncidentService;
   readNotes: (incidentId: string) => Promise<string>;
-  anthropic: Anthropic | null;
+  aiClient: Anthropic | null;
   config: Pick<Config, "GITHUB_WEBHOOK_SECRET" | "SENTRY_WEBHOOK_SECRET" | "INGEST_TOKEN" | "WEB_DIST">;
 }
 
-export function createApp({ service, readNotes, anthropic, config }: AppDeps) {
+export function createApp({ service, readNotes, aiClient, config }: AppDeps) {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
 
   app.get("/healthz", (_req, res) => void res.json({ ok: true }));
-  app.get("/api/config", (_req, res) => void res.json({ aiEnabled: Boolean(anthropic) }));
+  app.get("/api/config", (_req, res) => void res.json({ aiEnabled: Boolean(aiClient) }));
 
   // Webhooks parse their own raw body, so mount them before express.json().
   app.use("/api/webhooks", webhookRoutes(service, config));
-  app.use("/api/incidents", express.json({ limit: "100kb" }), incidentRoutes({ service, readNotes, anthropic }));
+  app.use("/api/incidents", express.json({ limit: "100kb" }), incidentRoutes({ service, readNotes, aiClient }));
   app.use("/api", (_req, res) => void res.status(404).json({ error: "Not found" }));
 
   // In production the server also serves the built React app.

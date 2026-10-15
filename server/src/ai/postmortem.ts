@@ -21,11 +21,11 @@ export const PostmortemSchema = z.object({
 export type PostmortemDraft = z.infer<typeof PostmortemSchema>;
 
 export interface Postmortem extends PostmortemDraft {
-  generatedBy: "claude" | "template";
+  generatedBy: "ai" | "template";
   generatedAt: string;
 }
 
-// JSON Schema mirror of PostmortemSchema for Claude's structured output.
+// JSON Schema mirror of PostmortemSchema for the model's structured output.
 const str = { type: "string" } as const;
 const strList = { type: "array", items: str } as const;
 const POSTMORTEM_JSON_SCHEMA = {
@@ -105,8 +105,8 @@ export function buildPostmortemPrompt(incident: Incident, events: TimelineEvent[
 
 export class PostmortemRefusedError extends Error {}
 
-/** Calls Claude with structured output so the response always matches PostmortemSchema. */
-export async function generateWithClaude(
+/** Calls the LLM with structured output so the response always matches PostmortemSchema. */
+export async function generateWithAI(
   client: Anthropic,
   incident: Incident,
   events: TimelineEvent[],

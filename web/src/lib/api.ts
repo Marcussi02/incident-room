@@ -14,7 +14,7 @@ export interface Postmortem {
   whatWentWell: string[];
   whatWentWrong: string[];
   actionItems: { title: string; priority: "P0" | "P1" | "P2"; owner: string }[];
-  generatedBy: "claude" | "template";
+  generatedBy: "ai" | "template";
   generatedAt: string;
 }
 

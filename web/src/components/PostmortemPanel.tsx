@@ -88,7 +88,7 @@ export function PostmortemPanel({ incident, aiEnabled }: { incident: Incident; a
             {incident.status === "resolved"
               ? "The incident is resolved. Draft a blameless postmortem from the timeline and shared notes."
               : "When things are stable, draft a postmortem from the timeline and shared notes. You can regenerate it any time."}
-            {!aiEnabled && " (No ANTHROPIC_API_KEY set, so this uses a template draft.)"}
+            {!aiEnabled && " (No AI_API_KEY set, so this uses a template draft.)"}
           </p>
         ) : (
           <div className="grid gap-5 lg:grid-cols-2">
@@ -131,7 +131,7 @@ export function PostmortemPanel({ incident, aiEnabled }: { incident: Incident; a
               </Section>
             </div>
             <p className="text-xs text-zinc-500 lg:col-span-2">
-              Drafted {new Date(pm.generatedAt).toLocaleString()} by {pm.generatedBy === "claude" ? "Claude" : "template"}. Review before sharing.
+              Drafted {new Date(pm.generatedAt).toLocaleString()} by {pm.generatedBy === "ai" ? "AI" : "template"}. Review before sharing.
             </p>
           </div>
         )}

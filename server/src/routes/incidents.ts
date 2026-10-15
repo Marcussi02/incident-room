@@ -2,7 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
 import {
-  generateWithClaude,
+  generateWithAI,
   PostmortemRefusedError,
   templatePostmortem,
   type Postmortem,
@@ -38,10 +38,10 @@ export function actorFrom(req: Request): string {
 export interface IncidentRouteDeps {
   service: IncidentService;
   readNotes: (incidentId: string) => Promise<string>;
-  anthropic: Anthropic | null;
+  aiClient: Anthropic | null;
 }
 
-export function incidentRoutes({ service, readNotes, anthropic }: IncidentRouteDeps): Router {
+export function incidentRoutes({ service, readNotes, aiClient }: IncidentRouteDeps): Router {
   const router = Router();
   const generating = new Set<string>();
 
@@ -105,12 +105,12 @@ export function incidentRoutes({ service, readNotes, anthropic }: IncidentRouteD
     generating.add(incident.id);
     try {
       const [events, notes] = await Promise.all([service.events(incident.id), readNotes(incident.id)]);
-      const draft = anthropic
-        ? await generateWithClaude(anthropic, incident, events, notes)
+      const draft = aiClient
+        ? await generateWithAI(aiClient, incident, events, notes)
         : templatePostmortem(incident, events, notes);
       const postmortem: Postmortem = {
         ...draft,
-        generatedBy: anthropic ? "claude" : "template",
+        generatedBy: aiClient ? "ai" : "template",
         generatedAt: new Date().toISOString(),
       };
       const updated = await service.savePostmortem(incident.id, postmortem);

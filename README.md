@@ -11,7 +11,7 @@ When production breaks, teams scramble across Slack threads, dashboards and docs
 1. **An alert fires.** A Sentry error or failed deploy webhook **opens an incident automatically** and pulls in the deploys and pushes from the previous hour ("what changed?").
 2. **Responders join the room.** Everyone edits the same notes in real time (Google Docs-style cursors), pins key findings to the timeline and moves the status from *investigating* to *resolved*.
 3. **The chart answers "was it the deploy?"** Errors per minute are drawn against deploy and recovery markers.
-4. **One click drafts the postmortem.** Claude reads the timeline and notes and returns a structured, blameless postmortem (summary, root cause, timeline, action items) that you can copy as Markdown.
+4. **One click drafts the postmortem.** An LLM reads the timeline and notes and returns a structured, blameless postmortem (summary, root cause, timeline, action items) that you can copy as Markdown.
 
 ## Features
 
@@ -23,7 +23,7 @@ When production breaks, teams scramble across Slack threads, dashboards and docs
 | **Smart routing** | Events go to the named incident, else the open one. A new alert opens an incident automatically, and deploys with no incident are held so the next incident can pull them in. |
 | **Live everything** | Timeline entries, status changes and new incidents are pushed to every open browser. Optional Redis pub/sub lets you run several server instances. |
 | **Error-rate visualization** | Adaptive time buckets (1m to 6h), stacked errors and alerts, and deploy and recovery markers. |
-| **AI postmortems** | Claude with JSON-schema structured output (validated again with Zod), a prompt-injection-aware system prompt and refusal handling. Falls back to a deterministic template without an API key. |
+| **AI postmortems** | LLM with JSON-schema structured output (validated again with Zod), a prompt-injection-aware system prompt and refusal handling. Falls back to a deterministic template without an API key. |
 | **Production-ready** | Typed end to end (TypeScript + Zod), migrations, graceful shutdown that flushes unsaved notes, health checks, Docker, CI. |
 
 ![Postmortem](docs/postmortem.png)
@@ -44,7 +44,7 @@ flowchart LR
   SVC <--> PG[(PostgreSQL)]
   YJS <--> PG
   HUB <-.optional.-> RD[(Redis pub/sub)]
-  AI --> CL[Claude API]
+  AI --> CL[LLM API]
   B1[Browser A] <-->|WebSocket| HUB
   B1 <-->|WebSocket CRDT| YJS
   B2[Browser B] <-->|WebSocket| HUB
@@ -56,13 +56,13 @@ flowchart LR
 - **CRDTs instead of locking or last-write-wins.** Two people typing in the same sentence both keep their edits, and reconnecting clients merge cleanly. The sync server is written directly on `y-protocols`. It buffers messages while a document loads from Postgres, debounces saves, and does a final save when the last person leaves.
 - **Normalize at the edge.** Each provider payload is checked with a Zod schema and converted into one `NormalizedEvent` shape, so the rest of the system never touches provider-specific JSON. Adding PagerDuty or Datadog is one function.
 - **Two sockets, two jobs.** `/yjs/:id` carries binary CRDT updates for the notes, and `/live` carries small JSON pushes for everything else. The live hub can sit behind Redis pub/sub without changing callers.
-- **The AI is optional and verifiable.** Prompt building is a pure function with unit tests. The Claude call is tested against a fake HTTP layer, so CI never needs an API key.
+- **The AI is optional and verifiable.** Prompt building is a pure function with unit tests. The LLM call is tested against a fake HTTP layer, so CI never needs an API key.
 
 ## Tech stack
 
 **Frontend:** React 18, TypeScript, Vite, Tailwind CSS v4, TipTap + Yjs, Recharts, React Router
 **Backend:** Node.js 22, Express 5, `ws`, Yjs / y-protocols, PostgreSQL (`pg`), Redis (`ioredis`), Zod
-**AI:** Anthropic Claude API (structured outputs)
+**AI:** LLM API with structured outputs
 **Infra:** Docker, Docker Compose, Render blueprint, GitHub Actions (typecheck, tests against real Postgres, build)
 **Testing:** Vitest, Supertest, Playwright (end-to-end, multi-user)
 
@@ -95,7 +95,7 @@ The simulator plays a realistic incident: a push, a bad deploy, an error spike t
 
 1. Push this repo to GitHub.
 2. On [Render](https://render.com): **New → Blueprint**, then select the repo. `render.yaml` creates the web service and a Postgres database.
-3. Optional: set `ANTHROPIC_API_KEY` in the service's environment for AI postmortems.
+3. Optional: set `AI_API_KEY` in the service's environment for AI postmortems.
 
 > Render's free Postgres expires after 30 days. For a permanent demo, point `DATABASE_URL` at a free [Neon](https://neon.tech) database (add `?sslmode=require`).
 
@@ -116,7 +116,7 @@ npm test                                   # unit tests
 TEST_DATABASE_URL=postgres://... npm test  # + API integration tests against Postgres
 ```
 
-These cover signature verification (including tampered bodies), payload normalization for each provider, duplicate delivery handling, automatic incident creation with recent-change attachment, metrics bucketing, the Claude request shape and refusal handling, and CRDT-document-to-text extraction. CI runs everything against a real Postgres service.
+These cover signature verification (including tampered bodies), payload normalization for each provider, duplicate delivery handling, automatic incident creation with recent-change attachment, metrics bucketing, the LLM request shape and refusal handling, and CRDT-document-to-text extraction. CI runs everything against a real Postgres service.
 
 ## Roadmap
 

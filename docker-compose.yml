@@ -21,7 +21,7 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/incidentroom
       REDIS_URL: redis://redis:6379
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_API_KEY: ${AI_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import {
   buildPostmortemPrompt,
-  generateWithClaude,
+  generateWithAI,
   MODEL,
   PostmortemRefusedError,
   PostmortemSchema,
@@ -65,7 +65,7 @@ describe("templatePostmortem", () => {
   });
 });
 
-describe("generateWithClaude", () => {
+describe("generateWithAI", () => {
   const fakeClient = (reply: { stop_reason: string; text: string }) => {
     const requests: Array<{ url: string; body: Record<string, unknown>; headers: Headers }> = [];
     const fetch = async (url: string | URL | Request, init?: RequestInit) => {
@@ -91,11 +91,11 @@ describe("generateWithClaude", () => {
     const draft = templatePostmortem(incident, events, "");
     const { client, requests } = fakeClient({ stop_reason: "end_turn", text: JSON.stringify(draft) });
 
-    const result = await generateWithClaude(client, incident, events, "Rolled back");
+    const result = await generateWithAI(client, incident, events, "Rolled back");
 
     expect(result.rootCause).toBe(draft.rootCause);
     const { body, headers } = requests[0];
-    expect(body.model).toBe("claude-opus-5-5");
+    expect(body.model).toBe(MODEL);
     expect(body.fallbacks).toBe("default");
     expect(headers.get("anthropic-beta")).toContain("server-side-fallback-2026-07-01");
     expect(body.output_config).toMatchObject({ format: { type: "json_schema" } });
@@ -104,7 +104,7 @@ describe("generateWithClaude", () => {
 
   it("surfaces refusals as a typed error", async () => {
     const { client } = fakeClient({ stop_reason: "refusal", text: "" });
-    await expect(generateWithClaude(client, incident, events, "")).rejects.toBeInstanceOf(PostmortemRefusedError);
+    await expect(generateWithAI(client, incident, events, "")).rejects.toBeInstanceOf(PostmortemRefusedError);
   });
 });
 

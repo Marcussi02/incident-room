@@ -11,7 +11,7 @@ const EnvSchema = z.object({
   // Bearer token for the generic ingest endpoint (uptime checks, scripts, etc.)
   INGEST_TOKEN: z.string().default("dev-ingest-token"),
   // Optional: without it, postmortems fall back to a template-based draft.
-  ANTHROPIC_API_KEY: z.string().optional(),
+  AI_API_KEY: z.string().optional(),
   WEB_DIST: z.string().optional(),
 });
 
